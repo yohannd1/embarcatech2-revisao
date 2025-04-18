@@ -20,6 +20,7 @@ target_include_directories(${PROJECT} PRIVATE
 
 target_link_libraries(${PROJECT}
     pico_stdlib
+    hardware_timer
 )
 
 pico_set_program_name(${PROJECT} "${PROJECT}")
