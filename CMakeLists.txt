@@ -12,6 +12,7 @@ pico_sdk_init()
 
 add_executable(${PROJECT}
     src/main.c
+    src/ssd1306.c
 )
 
 target_include_directories(${PROJECT} PRIVATE
@@ -21,6 +22,7 @@ target_include_directories(${PROJECT} PRIVATE
 target_link_libraries(${PROJECT}
     pico_stdlib
     hardware_timer
+    hardware_i2c
 )
 
 pico_set_program_name(${PROJECT} "${PROJECT}")
