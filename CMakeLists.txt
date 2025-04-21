@@ -14,6 +14,7 @@ add_executable(${PROJECT}
     src/main.c
     src/ssd1306.c
     src/ws2812b_matrix.c
+    src/buzzer.c
 )
 
 target_include_directories(${PROJECT} PRIVATE
@@ -26,6 +27,7 @@ target_link_libraries(${PROJECT}
     hardware_i2c
     hardware_adc
     hardware_pio
+    hardware_pwm
 )
 
 pico_generate_pio_header(${PROJECT} ${CMAKE_CURRENT_LIST_DIR}/src/ws2812b.pio)

@@ -8,8 +8,10 @@
 
 #include "ssd1306.h"
 #include "ws2812b_matrix.h"
+#include "buzzer.h"
 
 #define LED_STRIP_PIN 7
+#define BUZZER_PIN 21
 
 #define BUTTON_A_PIN 5
 #define BUTTON_B_PIN 6
@@ -41,6 +43,7 @@ static volatile _Atomic float joystick_y_axis = 0.0f;
 
 static ws2812b_matrix_t matrix;
 static ws2812b_buffer_t buffer;
+static buzzer_t bz;
 static volatile _Atomic int screen_updates_queued = 1;
 static volatile _Atomic int cursor_x = 2;
 static volatile _Atomic int cursor_y = 2;
@@ -88,6 +91,8 @@ int main(void) {
 	if (!ssd1306_init(&display, DISPLAY_WIDTH, DISPLAY_HEIGHT, false, 0x3C, DISPLAY_I2C_PORT))
 		die("falha ao inicializar o display OLED");
 
+	buzzer_init(&bz, BUZZER_PIN);
+
 	struct repeating_timer timer;
 	add_repeating_timer_ms(UPDATE_TIME_MS, main_loop, NULL, &timer);
 
@@ -99,6 +104,7 @@ int main(void) {
 }
 
 static bool main_loop(struct repeating_timer *_) {
+	buzzer_stop(&bz);
 	ssd1306_fill(&display, 0);
 
 	adc_select_input(JOYSTICK_X_INPUT);
@@ -113,6 +119,7 @@ static bool main_loop(struct repeating_timer *_) {
 	ssd1306_send_data(&display);
 
 	if (screen_updates_queued > 0) {
+		buzzer_start(&bz, 400.0f);
 		ws2812b_matrix_draw(&matrix, &buffer);
 		screen_updates_queued--;
 	}
