@@ -23,6 +23,7 @@ target_link_libraries(${PROJECT}
     pico_stdlib
     hardware_timer
     hardware_i2c
+    hardware_adc
 )
 
 pico_set_program_name(${PROJECT} "${PROJECT}")
