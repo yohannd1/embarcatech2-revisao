@@ -8,6 +8,9 @@
 
 #include "ssd1306.h"
 
+#define BUTTON_A_PIN 5
+#define BUTTON_B_PIN 6
+
 #define JOYSTICK_X_PIN 27
 #define JOYSTICK_X_INPUT 1
 
@@ -17,19 +20,22 @@
 #define JOYSTICK_CORRECTION -0.1 // evitar flicker na luz quando o joystick não está sendo usado
 #define JOYSTICK_WRAP 4096
 
-// velocidade de atualização do loop principal
-#define UPDATE_RATE_HZ 20
-#define UPDATE_TIME_MS (1000.0f / UPDATE_RATE_HZ)
-
 #define DISPLAY_SDA_PIN 14
 #define DISPLAY_SCL_PIN 15
 #define DISPLAY_I2C_PORT i2c1
 #define DISPLAY_WIDTH 128
 #define DISPLAY_HEIGHT 64
 
+#define DEBOUNCING_TIME_US 10000
+
+// velocidade de atualização do loop principal
+#define UPDATE_RATE_HZ 20
+#define UPDATE_TIME_MS (1000.0f / UPDATE_RATE_HZ)
+
 static volatile int val = 0;
 static ssd1306_t display;
 
+static void on_press(uint gpio, uint32_t events);
 static bool main_loop(struct repeating_timer *_);
 static void die(const char *msg);
 static float get_axis_normalized(uint16_t axis_value);
@@ -41,6 +47,17 @@ int main(void) {
 	adc_init();
 	adc_gpio_init(JOYSTICK_X_PIN);
 	adc_gpio_init(JOYSTICK_Y_PIN);
+
+	gpio_init(BUTTON_A_PIN);
+	gpio_set_dir(BUTTON_A_PIN, GPIO_IN);
+	gpio_pull_up(BUTTON_A_PIN);
+
+	gpio_init(BUTTON_B_PIN);
+	gpio_set_dir(BUTTON_B_PIN, GPIO_IN);
+	gpio_pull_up(BUTTON_B_PIN);
+
+	gpio_set_irq_enabled_with_callback(BUTTON_A_PIN, GPIO_IRQ_EDGE_FALL, true, &on_press);
+	gpio_set_irq_enabled_with_callback(BUTTON_B_PIN, GPIO_IRQ_EDGE_FALL, true, &on_press);
 
 	i2c_init(DISPLAY_I2C_PORT, 400000); // 400KHz
 	gpio_set_function(DISPLAY_SDA_PIN, GPIO_FUNC_I2C);
@@ -77,6 +94,30 @@ static bool main_loop(struct repeating_timer *_) {
 
 	return true;
 }
+
+static void on_press(uint gpio, uint32_t events) {
+	static volatile uint32_t last_time_a = 0;
+	static volatile uint32_t last_time_b = 0;
+	uint32_t current_time = to_us_since_boot(get_absolute_time());
+
+	if (gpio == BUTTON_A_PIN) {
+		if (current_time - last_time_a > DEBOUNCING_TIME_US) {
+			bool button_a_pressed = !gpio_get(BUTTON_A_PIN);
+			if (button_a_pressed) {
+				printf("wah\n");
+			}
+			last_time_a = current_time;
+		}
+	} else if (gpio == BUTTON_B_PIN) {
+		if (current_time - last_time_b > DEBOUNCING_TIME_US) {
+			bool button_b_pressed = !gpio_get(BUTTON_B_PIN);
+			if (button_b_pressed) {
+			}
+			last_time_b = current_time;
+		}
+	}
+}
+
 
 static void die(const char *msg) {
 	while (true) {
