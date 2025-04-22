@@ -16,6 +16,8 @@
 #define BUTTON_A_PIN 5
 #define BUTTON_B_PIN 6
 
+#define MID_LED_B_PIN 12
+
 #define JOYSTICK_X_PIN 27
 #define JOYSTICK_X_INPUT 1
 
@@ -79,6 +81,9 @@ int main(void) {
 	gpio_set_dir(BUTTON_B_PIN, GPIO_IN);
 	gpio_pull_up(BUTTON_B_PIN);
 
+	gpio_init(MID_LED_B_PIN);
+	gpio_set_dir(MID_LED_B_PIN, GPIO_OUT);
+
 	gpio_set_irq_enabled_with_callback(BUTTON_A_PIN, GPIO_IRQ_EDGE_FALL, true, &on_press);
 	gpio_set_irq_enabled_with_callback(BUTTON_B_PIN, GPIO_IRQ_EDGE_FALL, true, &on_press);
 
@@ -105,7 +110,7 @@ int main(void) {
 
 static bool main_loop(struct repeating_timer *_) {
 	buzzer_stop(&bz);
-	ssd1306_fill(&display, 0);
+	gpio_put(MID_LED_B_PIN, 0);
 
 	adc_select_input(JOYSTICK_X_INPUT);
 	joystick_x_axis = get_axis_normalized(adc_read());
@@ -115,11 +120,14 @@ static bool main_loop(struct repeating_timer *_) {
 
 	uint16_t x_mid = DISPLAY_WIDTH / 2 + joystick_x_axis * 15;
 	uint16_t y_mid = DISPLAY_HEIGHT / 2 - joystick_y_axis * 15;
+
+	ssd1306_fill(&display, 0);
 	ssd1306_rect(&display, y_mid - 4, x_mid - 4, 8, 8, 1, true);
 	ssd1306_send_data(&display);
 
 	if (screen_updates_queued > 0) {
 		buzzer_start(&bz, 400.0f);
+		gpio_put(MID_LED_B_PIN, 1);
 		ws2812b_matrix_draw(&matrix, &buffer);
 		screen_updates_queued--;
 	}
@@ -155,6 +163,8 @@ static void handle_toggle_cell(void) {
 	float *val = &buffer[5*cursor_y + cursor_x].r;
 	*val = (*val == 0.0f) ? LED_ON_INTENSITY : 0.0f;
 
+	printf("Trocando casa atual de cor\n");
+
 	// avisar que o display mudou
 	screen_updates_queued++;
 }
@@ -186,7 +196,7 @@ static void handle_move_cursor(void) {
 	}
 
 	if (old_x != cursor_x || old_y != cursor_y) {
-		printf("Changing from (%d, %d) to (%d, %d)\n", old_x, old_y, cursor_x, cursor_y);
+		printf("Posição alterada de (%d, %d) to (%d, %d)\n", old_x, old_y, cursor_x, cursor_y);
 
 		// atualizar marcação do cursor se ele mudou de lugar
 		buffer[5*old_y + old_x].g = 0.0f;
